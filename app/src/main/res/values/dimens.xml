@@ -1,0 +1,7 @@
+<resources>
+    <dimen name="fab_margin">16dp</dimen>
+
+    <dimen name="textViewShadowDx">1</dimen>
+    <dimen name="textViewShadowDy">1</dimen>
+    <dimen name="textViewShadowRadius">2</dimen>
+</resources>
