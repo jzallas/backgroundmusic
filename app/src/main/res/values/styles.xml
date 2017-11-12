@@ -17,4 +17,12 @@
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
+    <style name="MediaTextAppearance" parent="TextAppearance.AppCompat">
+        <item name="android:shadowColor">@color/lightTextColor</item>
+        <item name="android:shadowDx">@dimen/textViewShadowDx</item>
+        <item name="android:shadowDy">@dimen/textViewShadowDy</item>
+        <item name="android:shadowRadius">@dimen/textViewShadowRadius</item>
+        <item name="android:textColor">@color/lightTextColor</item>
+    </style>
+
 </resources>
