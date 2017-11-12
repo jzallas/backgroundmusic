@@ -9,8 +9,6 @@ import com.jzallas.backgroundmusic.media.MediaManager;
 import com.jzallas.backgroundmusic.media.MediaMetadata;
 import com.jzallas.backgroundmusic.media.MediaProgress;
 
-import java.io.IOException;
-
 public class PlayerPresenter implements PlayerContract.Presenter,
         MediaManager.OnPreparedListener,
         MediaManager.OnPlaybackCompleteListener {
@@ -18,11 +16,11 @@ public class PlayerPresenter implements PlayerContract.Presenter,
     private static final int QUICK_MEDIA_ADJUSTMENT_AMOUNT = 30000; // +-30
 
     private final LoggerInterface logger;
-    private Uri mediaUri;
+    private String mediaUri;
     private MediaManager mediaManager;
     private PlayerContract.View view;
 
-    PlayerPresenter(Uri mediaUri, MediaManager mediaManager, PlayerContract.View view, LoggerInterface logger) {
+    PlayerPresenter(String mediaUri, MediaManager mediaManager, PlayerContract.View view, LoggerInterface logger) {
         view.setPresenter(this);
         this.mediaUri = mediaUri;
         this.mediaManager = mediaManager;
@@ -40,8 +38,8 @@ public class PlayerPresenter implements PlayerContract.Presenter,
         mediaManager.setOnPlaybackCompleteListener(this);
 
         try {
-            mediaManager.loadUri(mediaUri);
-        } catch (IOException e) {
+            mediaManager.loadUri(Uri.parse(mediaUri));
+        } catch (Exception e) {
             logger.log(Log.ERROR, "A problem occurred while loading the Uri", e);
             view.showError(e);
         }
