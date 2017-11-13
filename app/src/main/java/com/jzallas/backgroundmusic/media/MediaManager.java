@@ -31,10 +31,10 @@ public class MediaManager {
     /**
      * Attach a uri to this {@link MediaManager}.
      *
-     * @param uri the {@link Uri} that this {@link MediaManager} is expected to playback
+     * @param uri the uri that this {@link MediaManager} is expected to playback
      */
-    public void attachUri(Uri uri) {
-        this.uri = uri;
+    public void attachUri(String uri) {
+        this.uri = uri == null ? Uri.EMPTY : Uri.parse(uri);
     }
 
     /**
@@ -61,8 +61,8 @@ public class MediaManager {
     /**
      * Prepares the attached uri for playback
      *
-     * @throws IOException if a problem occurs while loading the {@link Uri}
-     * @see #attachUri(Uri)
+     * @throws IOException if a problem occurs while loading the uri
+     * @see #attachUri(String)
      */
     public void prepare() throws IOException {
         if (this.mediaPlayer != null) {

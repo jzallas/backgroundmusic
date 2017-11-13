@@ -1,6 +1,5 @@
 package com.jzallas.backgroundmusic.player;
 
-import android.net.Uri;
 import android.util.Log;
 
 import com.jzallas.backgroundmusic.Utils;
@@ -21,7 +20,6 @@ public class PlayerPresenter implements PlayerContract.Presenter,
     private static final int QUICK_MEDIA_ADJUSTMENT_AMOUNT = 30000; // +-30
 
     private final LoggerInterface logger;
-    private String mediaUri;
     private MediaManager mediaManager;
     private PlayerContract.View view;
 
@@ -35,8 +33,9 @@ public class PlayerPresenter implements PlayerContract.Presenter,
                     LoggerInterface logger,
                     BaseSchedulerProvider schedulerProvider) {
         view.setPresenter(this);
-        this.mediaUri = mediaUri;
         this.mediaManager = mediaManager;
+        this.mediaManager.setOnPlaybackCompleteListener(this);
+        this.mediaManager.attachUri(mediaUri);
         this.view = view;
 
         this.logger = logger;
@@ -50,10 +49,6 @@ public class PlayerPresenter implements PlayerContract.Presenter,
     public void start() {
         view.setControlsEnabled(false);
         view.showLoading(true);
-
-        mediaManager.setOnPlaybackCompleteListener(this);
-
-        mediaManager.attachUri(Uri.parse(mediaUri));
 
         Completable.create(e -> {
             try {
