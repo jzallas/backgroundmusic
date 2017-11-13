@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,6 +40,9 @@ public class PlayerFragment extends Fragment implements PlayerContract.View {
     @BindView(R.id.totalDurationTextView)
     TextView totalDurationTextView;
 
+    @BindView(R.id.swiperefresh)
+    SwipeRefreshLayout refreshLayout;
+
     @BindView(R.id.seekBar)
     SeekBar seekBar;
 
@@ -68,8 +72,14 @@ public class PlayerFragment extends Fragment implements PlayerContract.View {
 
         // setup media controls
         playControlImageButton.setOnClickListener(v -> presenter.playMusic());
-         forwardControlImageButton.setOnClickListener(v -> presenter.fastForward());
-         rewindControlImageButton.setOnClickListener(v -> presenter.rewind());
+        forwardControlImageButton.setOnClickListener(v -> presenter.fastForward());
+        rewindControlImageButton.setOnClickListener(v -> presenter.rewind());
+
+        refreshLayout.setColorSchemeColors(
+                getResources().getIntArray(R.array.color_scheme_swiperefresh)
+        );
+
+        refreshLayout.setOnRefreshListener(presenter::refresh);
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -160,6 +170,11 @@ public class PlayerFragment extends Fragment implements PlayerContract.View {
     }
 
     @Override
+    public void showLoading(boolean isLoading) {
+        refreshLayout.setRefreshing(isLoading);
+    }
+
+    @Override
     public void showError(Throwable e) {
         if (getView() == null) {
             return;
@@ -178,7 +193,7 @@ public class PlayerFragment extends Fragment implements PlayerContract.View {
         // want to know more about the failure details without actually checking logcat
         new AlertDialog.Builder(getActivity())
                 .setMessage(Log.getStackTraceString(e))
-                .setPositiveButton(R.string.dialog_button_retry, (dialogInterface, i) -> presenter.start())
+                .setPositiveButton(R.string.dialog_button_retry, (dialogInterface, i) -> presenter.refresh())
                 .setNeutralButton(R.string.dialog_button_okay, (dialogInterface, i) -> dialogInterface.dismiss())
                 .create()
                 .show();

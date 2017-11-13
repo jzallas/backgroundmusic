@@ -3,14 +3,13 @@ package com.jzallas.backgroundmusic.player;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
 import com.jzallas.backgroundmusic.ActivityUtils;
 import com.jzallas.backgroundmusic.R;
 import com.jzallas.backgroundmusic.media.MediaManager;
+import com.jzallas.backgroundmusic.schedulers.SchedulerProvider;
 
 public class PlayerActivity extends AppCompatActivity {
 
@@ -45,7 +44,8 @@ public class PlayerActivity extends AppCompatActivity {
                 mediaUri,
                 new MediaManager(this),
                 playerFragment,
-                ActivityUtils.getLogger()
+                ActivityUtils.getLogger(),
+                SchedulerProvider.getInstance()
         );
     }
 

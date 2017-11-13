@@ -12,6 +12,7 @@ import android.support.annotation.NonNull;
 import com.jzallas.backgroundmusic.player.PlayerPresenter;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 public class MediaManager {
 
@@ -21,8 +22,6 @@ public class MediaManager {
 
     private Uri uri;
 
-    private OnPreparedListener onPreparedListener;
-
     private OnPlaybackCompleteListener onPlaybackCompleteListener;
 
     public MediaManager(@NonNull Context context) {
@@ -30,16 +29,12 @@ public class MediaManager {
     }
 
     /**
-     * Begin async uri loading process.
+     * Attach a uri to this {@link MediaManager}.
      *
      * @param uri the {@link Uri} that this {@link MediaManager} is expected to playback
-     * @throws IOException if a problem occurs while loading the {@link Uri}
-     * @see OnPreparedListener
-     * @see #setOnPreparedListener(OnPreparedListener)
      */
-    public void loadUri(Uri uri) throws IOException {
+    public void attachUri(Uri uri) {
         this.uri = uri;
-        prepare();
     }
 
     /**
@@ -57,7 +52,19 @@ public class MediaManager {
         }
     }
 
-    private void prepare() throws IOException {
+    private boolean isExternalUri(Uri uri) {
+        String scheme = uri.getScheme().trim();
+
+        return scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https");
+    }
+
+    /**
+     * Prepares the attached uri for playback
+     *
+     * @throws IOException if a problem occurs while loading the {@link Uri}
+     * @see #attachUri(Uri)
+     */
+    public void prepare() throws IOException {
         if (this.mediaPlayer != null) {
             return;
         }
@@ -74,10 +81,10 @@ public class MediaManager {
                 mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             }
 
-            mediaPlayer.setDataSource(context, uri);
-
-            if (onPreparedListener != null) {
-                mediaPlayer.setOnPreparedListener(player -> onPreparedListener.onMediaPrepared());
+            if (isExternalUri(uri)) {
+                mediaPlayer.setDataSource(uri.toString());
+            } else {
+                mediaPlayer.setDataSource(context, uri);
             }
 
             if (onPlaybackCompleteListener != null) {
@@ -104,7 +111,7 @@ public class MediaManager {
      */
     public void play() {
         if (mediaPlayer == null) {
-            String message = String.format("%s is not prepared. Did you remember to call %s?", MediaManager.class.getSimpleName(), "loadUri(...)");
+            String message = String.format("%s is not prepared. Did you remember to call %s?", MediaManager.class.getSimpleName(), "attachUri(...)");
             throw new IllegalStateException(message);
         } else {
             mediaPlayer.start();
@@ -117,6 +124,7 @@ public class MediaManager {
     public void stop() {
         if (mediaPlayer != null) {
             mediaPlayer.stop();
+            mediaPlayer.reset();
             mediaPlayer.release();
             mediaPlayer = null;
         }
@@ -140,7 +148,11 @@ public class MediaManager {
 
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
 
-        retriever.setDataSource(context, uri);
+        if (isExternalUri(uri)) {
+            retriever.setDataSource(uri.toString(), new HashMap<>());
+        } else {
+            retriever.setDataSource(context, uri);
+        }
 
         return new MediaMetadata(
                 retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE),
@@ -162,16 +174,8 @@ public class MediaManager {
         return new MediaProgress(mediaPlayer.getCurrentPosition(), mediaPlayer.getDuration());
     }
 
-    public void setOnPreparedListener(OnPreparedListener onPreparedListener) {
-        this.onPreparedListener = onPreparedListener;
-    }
-
     public void setOnPlaybackCompleteListener(PlayerPresenter onPlaybackCompleteListener) {
         this.onPlaybackCompleteListener = onPlaybackCompleteListener;
-    }
-
-    public interface OnPreparedListener {
-        void onMediaPrepared();
     }
 
     public interface OnPlaybackCompleteListener {
