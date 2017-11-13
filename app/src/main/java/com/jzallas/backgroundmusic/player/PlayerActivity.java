@@ -1,19 +1,20 @@
 package com.jzallas.backgroundmusic.player;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
 import com.jzallas.backgroundmusic.ActivityUtils;
 import com.jzallas.backgroundmusic.R;
 import com.jzallas.backgroundmusic.media.MediaManager;
-
-import java.io.File;
+import com.jzallas.backgroundmusic.schedulers.SchedulerProvider;
 
 public class PlayerActivity extends AppCompatActivity {
+
+    private static final String INTENT_EXTRA_MEDIA_URI = PlayerActivity.class.getName() + ".media_uri";
+    private static final String INTENT_EXTRA_MEDIA_URI_STRING = PlayerActivity.class.getName() + ".media_uri_string";
 
     private PlayerPresenter playerPresenter;
 
@@ -26,12 +27,6 @@ public class PlayerActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // fab
-        // TODO - Launch dialog to customize uri
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show());
-
         // fragment
         PlayerFragment playerFragment =
                 (PlayerFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_placeholder);
@@ -43,15 +38,23 @@ public class PlayerActivity extends AppCompatActivity {
                     .commit();
         }
 
-        // TODO - replace with real uri mechanism
-        Uri mediaUri = Uri.parse("android.resource://com.jzallas.backgroundmusic/" + R.raw.sample);
+        String mediaUri = getMediaUri(getIntent());
 
         playerPresenter = new PlayerPresenter(
                 mediaUri,
                 new MediaManager(this),
                 playerFragment,
-                ActivityUtils.getLogger()
+                ActivityUtils.getLogger(),
+                SchedulerProvider.getInstance()
         );
+    }
+
+    private String getMediaUri(Intent intent) {
+        Uri uri = intent.getParcelableExtra(INTENT_EXTRA_MEDIA_URI);
+
+        return uri == null ?
+                intent.getStringExtra(INTENT_EXTRA_MEDIA_URI_STRING) :
+                uri.toString();
     }
 
 }

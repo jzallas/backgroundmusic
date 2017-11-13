@@ -3,9 +3,8 @@ package com.jzallas.backgroundmusic.player;
 import com.jzallas.backgroundmusic.BasePresenter;
 import com.jzallas.backgroundmusic.BaseView;
 
-public class PlayerContract {
+class PlayerContract {
 
-    // this is the fragment
     interface View extends BaseView<Presenter> {
 
         void showTitle(String title);
@@ -19,6 +18,8 @@ public class PlayerContract {
         void showPlaying();
 
         void showPaused();
+
+        void showLoading(boolean isLoading);
 
         void showError(Throwable e);
 
@@ -38,5 +39,7 @@ public class PlayerContract {
         void seekTo(int currentDuration, int totalDuration);
 
         void updateProgress();
+
+        void refresh();
     }
 }

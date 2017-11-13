@@ -1,6 +1,5 @@
 package com.jzallas.backgroundmusic.player;
 
-import android.net.Uri;
 import android.util.Log;
 
 import com.jzallas.backgroundmusic.Utils;
@@ -8,61 +7,107 @@ import com.jzallas.backgroundmusic.log.LoggerInterface;
 import com.jzallas.backgroundmusic.media.MediaManager;
 import com.jzallas.backgroundmusic.media.MediaMetadata;
 import com.jzallas.backgroundmusic.media.MediaProgress;
+import com.jzallas.backgroundmusic.schedulers.BaseSchedulerProvider;
 
-import java.io.IOException;
+import io.reactivex.Completable;
+import io.reactivex.Maybe;
+import io.reactivex.MaybeOnSubscribe;
+import io.reactivex.disposables.CompositeDisposable;
 
 public class PlayerPresenter implements PlayerContract.Presenter,
-        MediaManager.OnPreparedListener,
         MediaManager.OnPlaybackCompleteListener {
 
     private static final int QUICK_MEDIA_ADJUSTMENT_AMOUNT = 30000; // +-30
 
     private final LoggerInterface logger;
-    private Uri mediaUri;
     private MediaManager mediaManager;
     private PlayerContract.View view;
 
-    PlayerPresenter(Uri mediaUri, MediaManager mediaManager, PlayerContract.View view, LoggerInterface logger) {
+    private CompositeDisposable compositeDisposable;
+
+    private BaseSchedulerProvider schedulers;
+
+    PlayerPresenter(String mediaUri,
+                    MediaManager mediaManager,
+                    PlayerContract.View view,
+                    LoggerInterface logger,
+                    BaseSchedulerProvider schedulerProvider) {
         view.setPresenter(this);
-        this.mediaUri = mediaUri;
         this.mediaManager = mediaManager;
+        this.mediaManager.setOnPlaybackCompleteListener(this);
+        this.mediaManager.attachUri(mediaUri);
         this.view = view;
 
         this.logger = logger;
         this.logger.setTag(PlayerPresenter.class.getSimpleName());
+
+        this.compositeDisposable = new CompositeDisposable();
+        this.schedulers = schedulerProvider;
     }
 
     @Override
     public void start() {
         view.setControlsEnabled(false);
+        view.showLoading(true);
 
-        mediaManager.setOnPreparedListener(this);
-        mediaManager.setOnPlaybackCompleteListener(this);
+        Completable.create(e -> {
+            try {
+                mediaManager.prepare();
+                e.onComplete();
+            } catch (Exception exception) {
+                e.onError(exception);
+            }
+        })
+                .subscribeOn(schedulers.io())
+                .observeOn(schedulers.ui())
+                .doOnSubscribe(compositeDisposable::add)
+                .subscribe(
+                        this::onMediaPrepared,
+                        e -> {
+                            logger.log(Log.ERROR, "A problem occurred while loading the Uri", e);
+                            view.showError(e);
+                        });
 
-        try {
-            mediaManager.loadUri(mediaUri);
-        } catch (IOException e) {
-            logger.log(Log.ERROR, "A problem occurred while loading the Uri", e);
-            view.showError(e);
-        }
+        Maybe.create((MaybeOnSubscribe<MediaMetadata>) e -> {
+            try {
+                MediaMetadata metadata = mediaManager.getMediaMetadata();
+                if (metadata != null) {
+                    e.onSuccess(metadata);
+                }
+                e.onComplete();
+            } catch (Exception exception) {
+                e.onError(exception);
+            }
+        })
+                .subscribeOn(schedulers.io())
+                .observeOn(schedulers.ui())
+                .doOnSubscribe(compositeDisposable::add)
+                .subscribe(
+                        this::onMediaMetadataAvailable,
+                        e -> {
+                            logger.log(Log.ERROR, "A problem occurred when loading the metadata", e);
+                            view.showError(e);
+                        });
+
     }
 
-    @Override
-    public void onMediaPrepared() {
+    private void onMediaPrepared() {
+        view.showLoading(false);
         view.setControlsEnabled(true);
 
         updateProgress();
+    }
 
-        MediaMetadata mediaMetadata = mediaManager.getMediaMetadata();
+    private void onMediaMetadataAvailable(MediaMetadata metadata) {
+        // text
+        view.showTitle(Utils.cleanText(metadata.getTitle()));
+        view.showAlbum(Utils.cleanText(metadata.getAlbum()));
+        view.showArtist(Utils.cleanText(metadata.getAuthor()));
 
-        if (mediaMetadata != null) {
-            // text
-            view.showTitle(Utils.cleanText(mediaMetadata.getTitle()));
-            view.showAlbum(Utils.cleanText(mediaMetadata.getAlbum()));
-            view.showArtist(Utils.cleanText(mediaMetadata.getAuthor()));
-
-            // image
-            view.showAlbumArt(mediaMetadata.getAlbumArt());
+        // image
+        final byte[] albumArt = metadata.getAlbumArt();
+        if (albumArt != null && albumArt.length > 0) {
+            view.showAlbumArt(albumArt);
         }
     }
 
@@ -109,6 +154,8 @@ public class PlayerPresenter implements PlayerContract.Presenter,
         view.showPaused();
         view.updateMediaProgress(0, 1);
         view.setControlsEnabled(false);
+
+        compositeDisposable.clear();
     }
 
     @Override
@@ -135,9 +182,16 @@ public class PlayerPresenter implements PlayerContract.Presenter,
     }
 
     @Override
-    public void onPlaybackComplete() {
-        // just reset
+    public void refresh() {
         stop();
         start();
+    }
+
+    @Override
+    public void onPlaybackComplete() {
+        // set the ui back to beginning
+        mediaManager.pause();
+        view.showPaused();
+        seekTo(0);
     }
 }
