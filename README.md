@@ -1,4 +1,4 @@
-h4. Notes
+#### Notes
 
 This application does not launch from the standard launcher. It will only launch with an explicit intent for now.
 The explicit intent should provide a uri pointing to the playback media. You can test this by doing the following:
